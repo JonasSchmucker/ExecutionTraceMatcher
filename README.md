@@ -1,3 +1,5 @@
+# ExecutionTraceMatcher #
+
 The ExecutionTraceMatcher enables your computer to dynamically analyse executables, without the need for a long and tedious reverse engineering process. Executable traces are saved and can later be compared to the traces of other executables. Because the analysed program is actually being run, you will not be held back by obfuscated executables, where even a recursive descent disassembler might encounter problems.
 
 The recording of the executable trace is sped up by relying on Intel's hardware supported instruction recording
