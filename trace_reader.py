@@ -1,6 +1,4 @@
-import sys
 import re
-import json
 import numpy as np
 
 example1 = "6648	   0x00007ffff7d23ea3 <_IO_new_file_overflow+99>:	movzx  eax,bl"
@@ -16,15 +14,14 @@ def parse_line(line):
     m = re.match(
         r"(?P<counter>\d+)"                 # counter, group 1
         r"\s+"                              # whitespace
-        r"(?P<address>0[xX][0-9a-fA-F]+)"    # address, group 2
-        r"\s*"                              # whitespace
+        r"(?P<address>0[xX][0-9a-fA-F]+)"   # address, group 2
+        r"\s*"                              # optional whitespace
         r"(?P<function_name>[\w+@\*<>]*):"  # function name, group 3
         r"\s+"                              # whitespace
         r"(?P<mnemonic>[a-zA-Z0-9]+)"       # mnemonic, group 4
         r"\s*"                              # optional whitespace
         r"(?P<args>[^#]*)"                  # arguments, group 5+
-        r".*"                               # rest
-        ,
+        r".*",                              # rest
         line
     )
     if m is None:
@@ -51,14 +48,9 @@ def main():
             break
 
         instructions.append(calculate_embedding(parse_line(line)))
-        # counter, address, function_name, mnemonic, args = parse_line(line)
-        # instructions.append((counter, address, function_name, mnemonic, args))
 
     full_np_array = np.stack(instructions)
     np.save("trace_np_array", full_np_array)
-
-    # with open("gdb_trace.json", "w") as outfile:
-    #     json.dump(instructions, outfile, indent=4)
 
 
 if __name__ == '__main__':

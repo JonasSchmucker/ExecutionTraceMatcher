@@ -27,7 +27,7 @@ For hardware supported instruction tracing to be enabled, the value at
 ```bash
 /proc/sys/kernel/perf_event_paranoid
 ``` 
-needs to be less than 2.
+needs to be less than or equal to 2.
 This can be arranged by running:
 
 ```bash
