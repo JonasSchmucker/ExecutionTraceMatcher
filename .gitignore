@@ -1,4 +1,5 @@
 gdb_trace.json
 test.sh
-trace_np_array.npy
+traces/
+*.npy
 instructions.xml

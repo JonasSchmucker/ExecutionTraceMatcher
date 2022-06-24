@@ -2,6 +2,7 @@
 # importing the required modules
 import json
 import xml.etree.ElementTree as element_tree
+import re
   
   
 def parseXML(xmlfile):
@@ -15,7 +16,12 @@ def parseXML(xmlfile):
     instruction_dict = dict()
 
     for instruction in root.findall('./extension/instruction'):
-        instruction_dict[instruction.attrib['asm']] = instruction.attrib['category']
+        mnemonic = instruction.attrib['asm']
+        m = re.match(r"({[a-z0-9]*} )?([A-Z]+)", mnemonic) # remove unwanted tags
+        if m is None:
+            print(mnemonic)
+        mnemonic = m.group(2)
+        instruction_dict[mnemonic] = instruction.attrib['category']
 
     with open('instruction_categories.json', 'w') as out_file:
         json.dump(instruction_dict, out_file, indent=4)

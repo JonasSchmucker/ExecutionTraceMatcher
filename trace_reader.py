@@ -1,4 +1,8 @@
+import argparse
+import json
 import re
+from pathlib import Path
+
 import numpy as np
 
 example1 = "6648	   0x00007ffff7d23ea3 <_IO_new_file_overflow+99>:	movzx  eax,bl"
@@ -24,22 +28,64 @@ def parse_line(line):
         r".*",                              # rest
         line
     )
-    if m is None:
-        print("Line: " + line)
-    return (
+
+    (counter, address, function_name, mnemonic, args) = (
         int(m.group(1)),
         int(m.group(2), 16),
         m.group(3),
         m.group(4),
         m.group(5)
     )
+    if args is None:
+        args = ""
+    if function_name is None:
+        function_name = ""
+    return counter, address, function_name, mnemonic, args
 
 
-def calculate_embedding(counter, address=None, function_name=None, mnemonic=None, args=None) -> np.array:
-    return np.array((1, 0, 0))
+def calculate_embedding(categories_dict, categories_id_dict, dimension,
+                        counter, address, function_name, mnemonic, args) -> np.array:
+    np_array = np.zeros(dimension)
+    category = categories_dict.get(mnemonic.upper(), 0) # default dimension is 0
+    category_id = categories_id_dict[category]
+    np_array[category_id] = 1
+    return np_array
+
+
+def load_categories() -> (dict, dict, int):
+    with open("instruction_categories.json", "r") as categories_file:
+        instruction_dict = json.load(categories_file)
+
+    counter = 1  # counter starts at 1, 0 dimension is default dimension
+    categories_dict = dict()
+    categories_dict[0] = 0
+
+    for value in instruction_dict.values():
+        categories_dict[value] = counter
+        counter += 1
+
+    return instruction_dict, categories_dict, counter
+
+
+def handle_arguments():
+    # Create the parser and add arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('inferior_filename',
+                        metavar='inferior_filename',
+                        type=Path,
+                        nargs=1,
+                        help='inferior filename'
+                        )
+
+    # Parse and print the results
+    args = parser.parse_args()
+    return args.inferior_filename
 
 
 def main():
+    args = handle_arguments()
+    inferior = args[0].resolve().name
+    categories_dict, categories_id_dict, dimension = load_categories()
     instructions = list()
     while True:
         try:
@@ -47,10 +93,21 @@ def main():
         except EOFError:
             break
 
-        instructions.append(calculate_embedding(parse_line(line)))
+        (counter, address, function_name, mnemonic, args) = parse_line(line)
+        if mnemonic is None:
+            print(line)
+        instructions.append(
+            calculate_embedding(
+                categories_dict, categories_id_dict, dimension,
+                counter, address, function_name, mnemonic, args
+                                )
+                            )
 
     full_np_array = np.stack(instructions)
-    np.save("trace_np_array", full_np_array)
+    traces_directory = Path("./traces/").resolve()
+    if not traces_directory.exists():
+        traces_directory.mkdir()
+    np.save("traces/" + inferior + "_trace", full_np_array)
 
 
 if __name__ == '__main__':

@@ -17,8 +17,14 @@ $ git clone https://github.com/JonasSchmucker/ExecutionTraceMatcher
 # cd into it
 $ cd ExecutionTraceMatcher
 
-# run the tool
+# run the tool and save the execution trace to ./traces/
 ./save_trace.sh /path/to/your/executable --your --executables --args
+```
+
+After saving the execution traces of chosen programs, they can be matched against each other by running:
+
+```bash
+$ python3 match_traces.py
 ```
 
 ## Intel Branch Tracing ##
