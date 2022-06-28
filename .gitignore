@@ -1,5 +1,6 @@
 gdb_trace.json
 test.sh
 traces/
+test_traces/
 *.npy
 instructions.xml

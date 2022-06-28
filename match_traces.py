@@ -3,8 +3,15 @@ import argparse
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn import metrics
+import scipy
 import scipy.signal as signal
 import progressbar
+
+mode_dict = {
+    1: "Comparing function traces based on scipy.correlate()",
+    2: "Comparing function traces based on scipy two-dimensional Fourier transform",
+    3: "not implemented",
+}
 
 
 def handle_arguments():
@@ -26,25 +33,76 @@ def handle_arguments():
                         help='directory containing saved numpy array trace representations'
                         )
 
+    parser.add_argument('-m',
+                        "--mode",
+                        metavar='mode',
+                        type=int,
+                        nargs='?',
+                        default=1,
+                        help='determines which mode will be used to correlate the function traces. '
+                             'Valid modes are ' + str(mode_dict.keys())
+                        )
+
     # Parse and print the results
     args = parser.parse_args()
-    return args.inputFiles, args.inputdir
+    return args.inputFiles, args.inputdir, args.mode
 
 
-def conv(array_a: np.array, array_b: np.array) -> float:
-    return np.average(signal.correlate(array_a, array_b, mode="full"))
+def correlate(numpy_arrays, mode):
+    print("Loading chosen mode...  ", end="")
+    print(mode_dict.get(mode, "mode " + str(mode) + " is invalid. "
+                                                    "Valid modes are " + str(list(mode_dict.keys()))))
+    if mode == 1:
+        return correlate_scipy_correlate(numpy_arrays)
+    elif mode == 2:
+        return correlate_numpy_fft2(numpy_arrays)
+    elif mode == 3:
+        return None
+    else:
+        return np.zeros((len(numpy_arrays), len(numpy_arrays)))
 
 
-def correlate(numpy_arrays):
+def correlate_numpy_fft2(numpy_arrays):
+    max_cols = 0
+    max_rows = numpy_arrays[0].shape[1]
+    for array in numpy_arrays:
+        if max_cols < array.shape[0]:
+            max_cols = array.shape[0]
 
+    bar = progressbar.ProgressBar(maxval=len(numpy_arrays)).start()
+
+    progress = 0
+    numpy_arrays_fourier_transforms = list()
+    for array in numpy_arrays:
+        numpy_arrays_fourier_transforms.append(
+            scipy.fft.fft2(array, s=(max_cols, max_rows), axes=(-2, -1))
+        )
+        progress += 1
+        bar.update(progress)
+
+    bar = progressbar.ProgressBar(maxval=len(numpy_arrays) * len(numpy_arrays)).start()
+    progress = 0
+    cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
+
+    for (i, array_a) in enumerate(numpy_arrays_fourier_transforms):
+        for (o, array_b) in enumerate(numpy_arrays_fourier_transforms):
+            if i < o:
+                cm[i][o] = cm[o][i] = 1.0 / np.average(array_a - array_b)
+            progress += 1
+            bar.update(progress)
+
+    return cm
+
+
+def correlate_scipy_correlate(numpy_arrays):
     bar = progressbar.ProgressBar(maxval=len(numpy_arrays) * len(numpy_arrays)).start()
 
     cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
     progress = 0
     for (i, array_a) in enumerate(numpy_arrays):
         for (o, array_b) in enumerate(numpy_arrays):
-            if array_a is not array_b:
-                cm[i][o] = conv(array_a, array_b)
+            if i < o:
+                cm[i][o] = cm[o][i] = np.average(signal.correlate(array_a, array_b, mode="full"))
             progress += 1
             bar.update(progress)
     return cm
@@ -53,7 +111,7 @@ def correlate(numpy_arrays):
 def load_numpy_arrays() -> (list, list):
     numpy_arrays = list()
     numpy_arrays_names = list()
-    input_files, input_directory = handle_arguments()
+    input_files, input_directory, mode = handle_arguments()
     for input_file in input_files:
         input_path = Path(input_file).resolve()
         if not input_path.exists():
@@ -79,12 +137,12 @@ def load_numpy_arrays() -> (list, list):
             numpy_arrays.append(np.load(input_directory_path.name + "/" + input_file_name))
             numpy_arrays_names.append(input_file_name)
 
-    return numpy_arrays, numpy_arrays_names
+    return numpy_arrays, numpy_arrays_names, mode
 
 
 def main():
-    numpy_arrays, numpy_arrays_names = load_numpy_arrays()
-    cm = correlate(numpy_arrays)
+    numpy_arrays, numpy_arrays_names, mode = load_numpy_arrays()
+    cm = correlate(numpy_arrays, mode)
 
     cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=numpy_arrays_names)
 
@@ -94,5 +152,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
