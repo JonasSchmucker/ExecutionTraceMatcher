@@ -10,7 +10,7 @@ import progressbar
 mode_dict = {
     1: "Comparing function traces based on scipy.correlate()",
     2: "Comparing function traces based on scipy two-dimensional Fourier transform",
-    3: "not implemented",
+    3: "Comparing function traces elementwise",
 }
 
 
@@ -40,7 +40,7 @@ def handle_arguments():
                         nargs='?',
                         default=1,
                         help='determines which mode will be used to correlate the function traces. '
-                             'Valid modes are ' + str(mode_dict.keys())
+                             'Valid modes are ' + str(list(mode_dict.keys()))
                         )
 
     # Parse and print the results
@@ -55,14 +55,29 @@ def correlate(numpy_arrays, mode):
     if mode == 1:
         return correlate_scipy_correlate(numpy_arrays)
     elif mode == 2:
-        return correlate_numpy_fft2(numpy_arrays)
+        return correlate_scipy_fft2(numpy_arrays)
     elif mode == 3:
-        return None
+        return correlate_numpy_equal(numpy_arrays)
     else:
         return np.zeros((len(numpy_arrays), len(numpy_arrays)))
 
 
-def correlate_numpy_fft2(numpy_arrays):
+def correlate_numpy_equal(numpy_arrays):
+    bar = progressbar.ProgressBar(maxval=len(numpy_arrays) * len(numpy_arrays)).start()
+
+    cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
+    progress = 0
+    for (i, array_a) in enumerate(numpy_arrays):
+        for (o, array_b) in enumerate(numpy_arrays):
+            if i < o:
+                cm[i][o] = cm[o][i] = 1 if np.array_equal(array_a, array_b) else 0
+            progress += 1
+            bar.update(progress)
+    print()
+    return cm
+
+
+def correlate_scipy_fft2(numpy_arrays):
     max_cols = 0
     max_rows = numpy_arrays[0].shape[1]
     for array in numpy_arrays:
@@ -79,7 +94,7 @@ def correlate_numpy_fft2(numpy_arrays):
         )
         progress += 1
         bar.update(progress)
-
+    print()
     bar = progressbar.ProgressBar(maxval=len(numpy_arrays) * len(numpy_arrays)).start()
     progress = 0
     cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
@@ -87,10 +102,14 @@ def correlate_numpy_fft2(numpy_arrays):
     for (i, array_a) in enumerate(numpy_arrays_fourier_transforms):
         for (o, array_b) in enumerate(numpy_arrays_fourier_transforms):
             if i < o:
-                cm[i][o] = cm[o][i] = 1.0 / np.average(array_a - array_b)
+                average = np.average(array_a - array_b)
+                absolute_average = np.absolute(average)
+                inverse = 1.0 / absolute_average
+                cm[i][o] = cm[o][i] = inverse
             progress += 1
             bar.update(progress)
 
+    print()
     return cm
 
 
@@ -105,6 +124,7 @@ def correlate_scipy_correlate(numpy_arrays):
                 cm[i][o] = cm[o][i] = np.average(signal.correlate(array_a, array_b, mode="full"))
             progress += 1
             bar.update(progress)
+    print()
     return cm
 
 
