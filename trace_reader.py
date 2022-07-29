@@ -13,6 +13,9 @@ example5 = "4	   0x00005555555550b0 <puts@plt+0>:	endbr64"
 example6 = "15	   0x00007ffff7cbf490 <*ABS*+0xa8720@plt+0>:	endbr64"
 example7 = "722	   0x0000555555564e4d:	mov    rdi,r14"
 
+# __INSTRUCTION_MAPPING__ = "instruction_categories.json"
+__INSTRUCTION_MAPPING__ = "reduced_instruction_categories.json"
+
 
 def parse_line(line):
     m = re.match(
@@ -46,21 +49,22 @@ def parse_line(line):
 def calculate_embedding(categories_dict, categories_id_dict, dimension,
                         counter, address, function_name, mnemonic, args) -> np.array:
     np_array = np.zeros(dimension)
-    category = categories_dict.get(mnemonic.upper(), 0) # default dimension is 0
+    category = categories_dict.get(mnemonic.upper(), -1)
+    if category == -1:
+        return None
     category_id = categories_id_dict[category]
     np_array[category_id] = 1
     return np_array
 
 
 def load_categories() -> (dict, dict, int):
-    with open("instruction_categories.json", "r") as categories_file:
+    with open(__INSTRUCTION_MAPPING__, "r") as categories_file:
         instruction_dict = json.load(categories_file)
 
-    counter = 1  # counter starts at 1, 0 dimension is default dimension
+    counter = 0
     categories_dict = dict()
     categories_dict[0] = 0
-
-    for value in instruction_dict.values():
+    for value in set(instruction_dict.values()):
         categories_dict[value] = counter
         counter += 1
 
@@ -96,12 +100,13 @@ def main():
         (counter, address, function_name, mnemonic, args) = parse_line(line)
         if mnemonic is None:
             print(line)
-        instructions.append(
-            calculate_embedding(
+
+        next_instruction = calculate_embedding(
                 categories_dict, categories_id_dict, dimension,
                 counter, address, function_name, mnemonic, args
                                 )
-                            )
+        if next_instruction is not None:
+            instructions.append(next_instruction)
 
     full_np_array = np.stack(instructions)
     traces_directory = Path("./traces/").resolve()

@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 from pathlib import Path
 import matplotlib.pyplot as plt
+from numpy import number
 from sklearn import metrics
 import scipy
 import scipy.signal as signal
@@ -95,21 +96,31 @@ def correlate_scipy_fft2(numpy_arrays):
         progress += 1
         bar.update(progress)
     print()
+
+    print(numpy_arrays_fourier_transforms[0])
+
     bar = progressbar.ProgressBar(maxval=len(numpy_arrays) * len(numpy_arrays)).start()
     progress = 0
     cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
 
+    debug_string = ""
+
     for (i, array_a) in enumerate(numpy_arrays_fourier_transforms):
         for (o, array_b) in enumerate(numpy_arrays_fourier_transforms):
             if i < o:
+                if i == 0 and o == 1:
+                    array_c = array_a - array_b
+                # TODO switch absolute average
                 average = np.average(array_a - array_b)
                 absolute_average = np.absolute(average)
                 inverse = 1.0 / absolute_average
                 cm[i][o] = cm[o][i] = inverse
+                debug_string += ("i: " + str(i) + "\to: " + str(o) + "\tinverse: " + str(inverse) + "\n")
             progress += 1
             bar.update(progress)
-
     print()
+    print(debug_string)
+    print(array_c)
     return cm
 
 
@@ -162,8 +173,15 @@ def load_numpy_arrays() -> (list, list):
 
 def main():
     numpy_arrays, numpy_arrays_names, mode = load_numpy_arrays()
-    cm = correlate(numpy_arrays, mode)
+    if len(numpy_arrays) == 0:
+        print("ERROR: No Function Traces could be loaded")
+        return
 
+    for trace in numpy_arrays:
+        print(trace.shape)
+
+    cm = correlate(numpy_arrays, mode)
+    print("Generating Heatmap")
     cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=numpy_arrays_names)
 
     cm_display.plot(xticks_rotation=45.0)

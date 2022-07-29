@@ -1,5 +1,4 @@
-# Python code to illustrate parsing of XML files
-# importing the required modules
+
 import json
 import xml.etree.ElementTree as element_tree
 import re
@@ -25,6 +24,8 @@ def parseXML(xmlfile):
 
     with open('instruction_categories.json', 'w') as out_file:
         json.dump(instruction_dict, out_file, indent=4)
+
+
 
 
 def main():
