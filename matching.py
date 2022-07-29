@@ -48,11 +48,13 @@ def numpy_correlate_random():
 
 
 def numpy_fft2():
-    array1 = np.random.rand(3, 4)
-    array2 = np.random.rand(3, 4)
+    array1 = np.load("traces/rsa_GCC_funroll-all-loops_trace.npy")
+    array2 = np.load("traces/rsa_GCC_O0_trace.npy")
 
     result1 = np.fft.fft2(array1)
 
+    for what in array1:
+        print(what)
     print(array1)
     print(result1)
 

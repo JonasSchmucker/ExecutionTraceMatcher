@@ -2,7 +2,6 @@ import numpy as np
 import argparse
 from pathlib import Path
 import matplotlib.pyplot as plt
-from numpy import number
 from sklearn import metrics
 import scipy
 import scipy.signal as signal
@@ -97,30 +96,20 @@ def correlate_scipy_fft2(numpy_arrays):
         bar.update(progress)
     print()
 
-    print(numpy_arrays_fourier_transforms[0])
-
     bar = progressbar.ProgressBar(maxval=len(numpy_arrays) * len(numpy_arrays)).start()
     progress = 0
     cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
 
-    debug_string = ""
-
     for (i, array_a) in enumerate(numpy_arrays_fourier_transforms):
         for (o, array_b) in enumerate(numpy_arrays_fourier_transforms):
             if i < o:
-                if i == 0 and o == 1:
-                    array_c = array_a - array_b
-                # TODO switch absolute average
-                average = np.average(array_a - array_b)
-                absolute_average = np.absolute(average)
+                absolute = np.absolute(array_a - array_b)
+                absolute_average = np.average(absolute)
                 inverse = 1.0 / absolute_average
                 cm[i][o] = cm[o][i] = inverse
-                debug_string += ("i: " + str(i) + "\to: " + str(o) + "\tinverse: " + str(inverse) + "\n")
             progress += 1
             bar.update(progress)
     print()
-    print(debug_string)
-    print(array_c)
     return cm
 
 
@@ -176,9 +165,6 @@ def main():
     if len(numpy_arrays) == 0:
         print("ERROR: No Function Traces could be loaded")
         return
-
-    for trace in numpy_arrays:
-        print(trace.shape)
 
     cm = correlate(numpy_arrays, mode)
     print("Generating Heatmap")

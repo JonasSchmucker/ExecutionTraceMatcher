@@ -64,9 +64,11 @@ def load_categories() -> (dict, dict, int):
     counter = 0
     categories_dict = dict()
     categories_dict[0] = 0
-    for value in set(instruction_dict.values()):
-        categories_dict[value] = counter
-        counter += 1
+    with open("traces/embedding_info.txt", "w") as info_file:
+        for value in set(instruction_dict.values()):
+            info_file.write("One-hot coding at postion " + str(counter) + " equates to: " + value + "\n")
+            categories_dict[value] = counter
+            counter += 1
 
     return instruction_dict, categories_dict, counter
 
