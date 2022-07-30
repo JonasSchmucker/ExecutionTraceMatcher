@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 import argparse
 from pathlib import Path
@@ -10,7 +11,8 @@ import progressbar
 mode_dict = {
     1: "Comparing function traces based on scipy.correlate()",
     2: "Comparing function traces based on scipy two-dimensional Fourier transform",
-    3: "Comparing function traces elementwise",
+    3: "Comparing function traces based on category statistics",
+    4: "Comparing function traces elementwise",
 }
 
 
@@ -57,6 +59,8 @@ def correlate(numpy_arrays, mode):
     elif mode == 2:
         return correlate_scipy_fft2(numpy_arrays)
     elif mode == 3:
+        return correlate_category_statistics(numpy_arrays)
+    elif mode == 4:
         return correlate_numpy_equal(numpy_arrays)
     else:
         return np.zeros((len(numpy_arrays), len(numpy_arrays)))
@@ -74,6 +78,34 @@ def correlate_numpy_equal(numpy_arrays):
             progress += 1
             bar.update(progress)
     print()
+    return cm
+
+
+def correlate_category_statistics(numpy_arrays):
+    bar = progressbar.ProgressBar(maxval=len(numpy_arrays)).start()
+
+    progress = 0
+    numpy_arrays_category_statistics = list()
+    for array in numpy_arrays:
+        category_sum = np.sum(array, axis=0)
+        category_statistic = category_sum / np.sum(category_sum)  # calculating distribution
+        numpy_arrays_category_statistics.append(
+            category_statistic
+        )
+        progress += 1
+        bar.update(progress)
+    print()
+
+    cm = np.zeros((len(numpy_arrays), len(numpy_arrays)))
+
+    for (i, array_a) in enumerate(numpy_arrays_category_statistics):
+        for (o, array_b) in enumerate(numpy_arrays_category_statistics):
+            if i < o:
+                absolute = np.absolute(array_a - array_b)
+                absolute_average = np.average(absolute)
+                inverse = 1.0 / absolute_average
+                cm[i][o] = cm[o][i] = inverse
+
     return cm
 
 
@@ -168,6 +200,26 @@ def main():
 
     cm = correlate(numpy_arrays, mode)
     print("Generating Heatmap")
+    maximum = np.NINF
+    minimum = np.PINF
+
+    # calculate max and min excluding diagonals
+    for i in range(len(numpy_arrays)):
+        for o in range(len(numpy_arrays)):
+            if i is not o:
+                cell = cm[i][o]
+                if cell < minimum:
+                    minimum = cell
+                if cell > maximum:
+                    maximum = cell
+
+    # normalizing between 0 and 1
+    if maximum is not minimum:
+        cm = (cm - minimum) / (maximum - minimum)
+
+    for io in range(len(numpy_arrays)):
+        cm[io][io] = np.nan  # fill diagonals with nans
+
     cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=numpy_arrays_names)
 
     cm_display.plot(xticks_rotation=45.0)

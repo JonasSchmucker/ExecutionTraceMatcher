@@ -57,15 +57,17 @@ def calculate_embedding(categories_dict, categories_id_dict, dimension,
     return np_array
 
 
-def load_categories() -> (dict, dict, int):
+def load_categories(inferior) -> (dict, dict, int):
     with open(__INSTRUCTION_MAPPING__, "r") as categories_file:
         instruction_dict = json.load(categories_file)
 
     counter = 0
     categories_dict = dict()
     categories_dict[0] = 0
-    with open("traces/embedding_info.txt", "w") as info_file:
-        for value in set(instruction_dict.values()):
+    category_list = list(set(instruction_dict.values()))
+    category_list.sort()
+    with open("embedding_info.txt", "w") as info_file:
+        for value in category_list:
             info_file.write("One-hot coding at postion " + str(counter) + " equates to: " + value + "\n")
             categories_dict[value] = counter
             counter += 1
@@ -91,7 +93,7 @@ def handle_arguments():
 def main():
     args = handle_arguments()
     inferior = args[0].resolve().name
-    categories_dict, categories_id_dict, dimension = load_categories()
+    categories_dict, categories_id_dict, dimension = load_categories(inferior)
     instructions = list()
     while True:
         try:

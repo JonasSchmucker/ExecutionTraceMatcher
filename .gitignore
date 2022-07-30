@@ -6,3 +6,4 @@ test_traces/
 *.npy
 reduce_instruction.py
 instructions.xml
+embedding_info.txt
